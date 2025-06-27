@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+from .db_download import DBDownloadMixin, add_download_info_endpoint
+
 # SQLAlchemy設定
 Base = declarative_base()
 
@@ -30,7 +32,7 @@ class GenericTable(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-class APIBuilder:
+class APIBuilder(DBDownloadMixin):
     """シンプルなAPIビルダー"""
 
     def __init__(self, title: str, description: str, version: str, db_path: str):
@@ -61,6 +63,9 @@ class APIBuilder:
 
         # 登録されたモデル
         self.models: dict[str, type[BaseModel]] = {}
+
+        # ダウンロード情報エンドポイントを追加
+        add_download_info_endpoint(self.app, db_path)
 
     def _validate_model(self, model: type[BaseModel]) -> None:
         """モデル検証"""

@@ -51,7 +51,7 @@ Repository = "https://github.com/json-api-builder/json-api-builder.git"
 Issues = "https://github.com/json-api-builder/json-api-builder/issues"
 
 [tool.hatchling.build.targets.wheel]
-packages = ["src/json_api_builder"]
+packages = ["json_api_builder"]
 
 
 
@@ -106,7 +106,7 @@ ignore = [
 "__init__.py" = ["F401"]
 "tests/**/*.py" = ["S101", "T20"]
 "examples/**/*.py" = ["T20"]  # print文を許可
-"scripts/**/*.py" = ["T20", "S603"]  # print文とsubprocessを許可
+"main.py" = ["T20"]  # print文を許可
 
 [tool.ruff.format]
 quote-style = "double"
