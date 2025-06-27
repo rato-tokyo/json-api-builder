@@ -1,6 +1,6 @@
 # json-api-builder
 
-JSONデータを使ったREST APIサーバーを簡単に構築できるPythonライブラリです。
+JSONデータを使ったREST APIサーバーを簡単に構築できるPythonライブラリです。 
 
 ## 特徴
 
