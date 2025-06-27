@@ -4,7 +4,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from json_api_builder import APIBuilder
 
@@ -34,4 +34,4 @@ def app():
 @pytest.fixture
 def client(app):
     """テスト用クライアント"""
-    return TestClient(app) 
+    return TestClient(app)
