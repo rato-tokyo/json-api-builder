@@ -35,7 +35,7 @@ def main():
             title="動作確認API",
             description="json-api-builderの動作確認用API",
             version="1.0.0",
-            db_path=db_path
+            db_path=db_path,
         )
 
         # リソース登録
@@ -50,7 +50,11 @@ def main():
         print("✅ API初期化完了")
 
         # 1. アイテム作成
-        item_data = {"name": "テストアイテム", "description": "これはテスト用のアイテムです", "price": 1000}
+        item_data = {
+            "name": "テストアイテム",
+            "description": "これはテスト用のアイテムです",
+            "price": 1000,
+        }
         response = client.post("/items/", json=item_data)
         print(f"📝 アイテム作成: {response.status_code}")
         print(f"   データ: {json.dumps(response.json(), ensure_ascii=False, indent=2)}")
@@ -68,7 +72,11 @@ def main():
         print(f"   データ: {json.dumps(response.json(), ensure_ascii=False, indent=2)}")
 
         # 4. アイテム更新
-        updated_data = {"name": "更新されたアイテム", "description": "更新されました", "price": 1500}
+        updated_data = {
+            "name": "更新されたアイテム",
+            "description": "更新されました",
+            "price": 1500,
+        }
         response = client.put(f"/items/{item_id}", json=updated_data)
         print(f"✏️ アイテム更新: {response.status_code}")
         print(f"   データ: {json.dumps(response.json(), ensure_ascii=False, indent=2)}")
@@ -91,7 +99,7 @@ def main():
 
     finally:
         # データベース接続をクローズ
-        if 'builder' in locals():
+        if "builder" in locals():
             builder.engine.dispose()
 
         # 一時ファイル削除

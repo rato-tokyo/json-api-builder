@@ -9,11 +9,10 @@ import json
 from datetime import datetime
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request, Query
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
-from typing import Annotated
 
 from .db_download import DBDownloadMixin, add_download_info_endpoint
 
@@ -114,54 +113,16 @@ class APIBuilder(DBDownloadMixin):
 
         # READ - アイテム一覧取得
         @self.app.get(f"{prefix}/", response_model=list[model])
-        async def get_items(db: Session = Depends(get_db), **filters):
-            # FastAPIのRequestからクエリパラメータを取得
-            def get_query_params(request: Request):
-                return dict(request.query_params)
-
-            # 実際のエンドポイント
-            async def inner_get_items(
-                db: Session = Depends(get_db),
-                request: Request = Depends(Request),
-            ):
-                query_params = dict(request.query_params)
-                db_items = db.query(GenericTable).filter(GenericTable.resource_type == name).all()
-                items = []
-                for db_item in db_items:
-                    data = json.loads(db_item.data)
-                    data["id"] = db_item.id
-                    # フィルタ適用
-                    match = True
-                    for k, v in query_params.items():
-                        if k not in data:
-                            match = False
-                            break
-                        # null文字列はNone判定
-                        if v == "null":
-                            if data[k] is not None:
-                                match = False
-                                break
-                        else:
-                            # 型変換（int, float, bool, str）
-                            field_type = model.model_fields[k].annotation if k in model.model_fields else str
-                            try:
-                                if field_type is int:
-                                    v_cast = int(v)
-                                elif field_type is float:
-                                    v_cast = float(v)
-                                elif field_type is bool:
-                                    v_cast = v.lower() in ("true", "1", "yes")
-                                else:
-                                    v_cast = v
-                            except Exception:
-                                v_cast = v
-                            if data[k] != v_cast:
-                                match = False
-                                break
-                    if match:
-                        items.append(model(**data))
-                return items
-            return await inner_get_items(db)
+        async def get_items(db: Session = Depends(get_db)):
+            db_items = (
+                db.query(GenericTable).filter(GenericTable.resource_type == name).all()
+            )
+            items = []
+            for db_item in db_items:
+                data = json.loads(db_item.data)
+                data["id"] = db_item.id
+                items.append(model(**data))
+            return items
 
         # READ - アイテム詳細取得
         @self.app.get(f"{prefix}/{{item_id}}", response_model=model)

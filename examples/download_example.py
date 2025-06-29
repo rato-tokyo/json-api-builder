@@ -51,7 +51,9 @@ def main():
     print("  1. まずアイテムを作成してください:")
     print("     curl -X POST http://127.0.0.1:8000/items/ \\")
     print('       -H "Content-Type: application/json" \\')
-    print('       -d \'{"name": "テストアイテム", "description": "テスト", "price": 100}\'')
+    print(
+        '       -d \'{"name": "テストアイテム", "description": "テスト", "price": 100}\''
+    )
     print()
     print("  2. ブラウザで以下にアクセスしてダウンロード:")
     print("     http://127.0.0.1:8000/download/database")

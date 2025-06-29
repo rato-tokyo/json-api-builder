@@ -18,7 +18,7 @@ class DBDownloadMixin:
         self,
         endpoint_path: str = "/download/database",
         require_auth: bool = False,
-        auth_token: str | None = None
+        auth_token: str | None = None,
     ) -> None:
         """
         データベースファイルのダウンロードエンドポイントを追加
@@ -37,30 +37,22 @@ class DBDownloadMixin:
             if require_auth:
                 if not auth_token:
                     raise HTTPException(
-                        status_code=500,
-                        detail="Authentication token not configured"
+                        status_code=500, detail="Authentication token not configured"
                     )
                 if token != auth_token:
                     raise HTTPException(
-                        status_code=401,
-                        detail="Invalid authentication token"
+                        status_code=401, detail="Invalid authentication token"
                     )
 
             # データベースファイルの存在確認
             db_path = self._get_db_file_path()
             if not os.path.exists(db_path):
-                raise HTTPException(
-                    status_code=404,
-                    detail="Database file not found"
-                )
+                raise HTTPException(status_code=404, detail="Database file not found")
 
             # ファイルサイズチェック
             file_size = os.path.getsize(db_path)
             if file_size == 0:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Database file is empty"
-                )
+                raise HTTPException(status_code=404, detail="Database file is empty")
 
             # ダウンロード用のファイル名を生成（タイムスタンプ付き）
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -72,8 +64,8 @@ class DBDownloadMixin:
                 media_type="application/octet-stream",
                 headers={
                     "Content-Disposition": f"attachment; filename={download_filename}",
-                    "Content-Length": str(file_size)
-                }
+                    "Content-Length": str(file_size),
+                },
             )
 
     def _get_db_file_path(self) -> str:
@@ -85,7 +77,7 @@ class DBDownloadMixin:
         else:
             raise HTTPException(
                 status_code=500,
-                detail="Database download is only supported for SQLite databases"
+                detail="Database download is only supported for SQLite databases",
             )
 
 
@@ -99,7 +91,7 @@ def add_download_info_endpoint(app, db_path: str):
             return {
                 "exists": False,
                 "path": db_path,
-                "message": "Database file not found"
+                "message": "Database file not found",
             }
 
         stat = os.stat(db_path)
@@ -109,5 +101,5 @@ def add_download_info_endpoint(app, db_path: str):
             "size_bytes": stat.st_size,
             "size_mb": round(stat.st_size / (1024 * 1024), 2),
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-            "download_url": "/download/database"
+            "download_url": "/download/database",
         }

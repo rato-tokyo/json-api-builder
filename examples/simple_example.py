@@ -3,7 +3,6 @@
 json-api-builder シンプルサンプル
 """
 
-
 from pydantic import BaseModel, Field
 
 from json_api_builder import APIBuilder
