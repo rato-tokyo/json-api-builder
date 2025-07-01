@@ -4,6 +4,7 @@ Database setup for the JSON API Builder.
 
 import contextlib
 from collections.abc import Generator
+from typing import Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -15,7 +16,6 @@ class Database:
     """Handles database connections and sessions."""
 
     def __init__(self, db_path: str):
-        self.db_path = db_path
         self.engine = create_engine(
             f"sqlite:///{db_path}",
             connect_args={"check_same_thread": False},
@@ -44,3 +44,7 @@ class Database:
         if url_str.startswith("sqlite:///"):
             return url_str[10:]
         raise ValueError("Database path could not be determined from engine URL.")
+
+    def dispose_engine(self) -> None:
+        """Disposes the engine."""
+        self.engine.dispose()

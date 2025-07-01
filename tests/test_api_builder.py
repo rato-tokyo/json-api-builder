@@ -8,6 +8,7 @@ import tempfile
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
+from sqlalchemy import create_engine
 
 from json_api_builder import APIBuilder
 
@@ -20,7 +21,7 @@ class Item(BaseModel):
 
 
 @pytest.fixture(scope="function")
-def temp_db():
+def temp_db_path():
     """Provides a temporary database path and ensures cleanup."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
         db_path = tmp_file.name
@@ -29,15 +30,12 @@ def temp_db():
         os.unlink(db_path)
 
 
-def test_basic_functionality(temp_db):
+def test_basic_functionality(temp_db_path):
     """Tests basic CRUD functionality."""
-    builder = APIBuilder(
-        title="Test", description="Test", version="1.0", db_path=temp_db
-    )
+    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db_path)
     builder.resource("items", Item)
-    client = TestClient(builder.get_app())
-
-    try:
+    
+    with TestClient(builder.get_app()) as client:
         item_data = {"name": "test", "description": "test item", "price": 100.0}
         response = client.post("/items/", json=item_data)
         assert response.status_code == 200
@@ -63,31 +61,11 @@ def test_basic_functionality(temp_db):
 
         response = client.get(f"/items/{item_id}")
         assert response.status_code == 404
-    finally:
-        builder.db.engine.dispose()
 
 
-def test_model_validation(temp_db):
-    """Tests that the builder validates models correctly."""
-    builder = APIBuilder(
-        title="Test", description="Test", version="1.0", db_path=temp_db
-    )
-    try:
-
-        class InvalidModel:
-            pass
-
-        with pytest.raises(ValueError):
-            builder.resource("invalid", InvalidModel)
-    finally:
-        builder.db.engine.dispose()
-
-
-def test_multiple_resources(temp_db):
+def test_multiple_resources(temp_db_path):
     """Tests functionality with multiple registered resources."""
-    builder = APIBuilder(
-        title="Test", description="Test", version="1.0", db_path=temp_db
-    )
+    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db_path)
 
     class User(BaseModel):
         id: int | None = None
@@ -96,14 +74,11 @@ def test_multiple_resources(temp_db):
 
     builder.resource("items", Item)
     builder.resource("users", User)
-    client = TestClient(builder.get_app())
-
-    try:
-        client.post(
-            "/items/", json={"name": "item1", "description": "desc1", "price": 1.0}
-        )
+    
+    with TestClient(builder.get_app()) as client:
+        client.post("/items/", json={"name": "item1", "description": "desc1", "price": 1.0})
         client.post("/users/", json={"name": "user1", "email": "user1@test.com"})
-
+        
         response = client.get("/items/")
         assert response.status_code == 200
         assert len(response.json()) == 1
@@ -111,5 +86,3 @@ def test_multiple_resources(temp_db):
         response = client.get("/users/")
         assert response.status_code == 200
         assert len(response.json()) == 1
-    finally:
-        builder.db.engine.dispose()

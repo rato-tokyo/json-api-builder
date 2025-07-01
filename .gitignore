@@ -145,3 +145,4 @@ dmypy.json
 Thumbs.db 
 
 .ruff_cache/
+GEMINI.md
