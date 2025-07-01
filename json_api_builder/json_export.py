@@ -14,23 +14,22 @@ from .models import GenericTable
 class JSONExporter:
     """Exports the database content to JSON files."""
 
-    def __init__(self, db_path: str):
+    def __init__(self, db: Database):
         """Initializes the JSONExporter."""
-        self.db_path = db_path
+        self.db = db
 
     def export_to_json(self, output_dir: str, pretty: bool = True) -> dict[str, Any]:
         """Exports all data from the database to JSON files."""
-        if not os.path.exists(self.db_path):
-            raise FileNotFoundError(f"Database file not found: {self.db_path}")
+        db_path = self.db.get_db_file_path()
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(f"Database file not found: {db_path}")
 
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        db = Database(self.db_path)
-        session = next(db.get_db())
-        try:
+        with self.db.get_db() as session:
             export_info = {
-                "database_path": self.db_path,
+                "database_path": db_path,
                 "output_directory": str(output_path.absolute()),
                 "exported_files": [],
                 "resource_counts": {},
@@ -66,25 +65,21 @@ class JSONExporter:
                 export_info["total_records"] += len(items)
 
             return export_info
-        finally:
-            session.close()
-            db.engine.dispose()
 
     def export_resource_to_json(
         self, resource_type: str, output_file: str, pretty: bool = True
     ) -> dict[str, Any]:
         """Exports a specific resource type to a JSON file."""
-        if not os.path.exists(self.db_path):
-            raise FileNotFoundError(f"Database file not found: {self.db_path}")
+        db_path = self.db.get_db_file_path()
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(f"Database file not found: {db_path}")
 
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        db = Database(self.db_path)
-        session = next(db.get_db())
-        try:
+        with self.db.get_db() as session:
             export_info = {
-                "database_path": self.db_path,
+                "database_path": db_path,
                 "resource_type": resource_type,
                 "output_file": str(output_path.absolute()),
                 "record_count": 0,
@@ -118,22 +113,27 @@ class JSONExporter:
 
             export_info["record_count"] = len(export_data)
             return export_info
-        finally:
-            session.close()
-            db.engine.dispose()
 
 
 def export_database_to_json(
     db_path: str, output_dir: str, pretty: bool = True
 ) -> dict[str, Any]:
     """Function to export the entire database to JSON files."""
-    exporter = JSONExporter(db_path)
-    return exporter.export_to_json(output_dir, pretty)
+    db = Database(db_path)
+    try:
+        exporter = JSONExporter(db)
+        return exporter.export_to_json(output_dir, pretty)
+    finally:
+        db.engine.dispose()
 
 
 def export_resource_to_json(
     db_path: str, resource_type: str, output_file: str, pretty: bool = True
 ) -> dict[str, Any]:
     """Function to export a specific resource type to a JSON file."""
-    exporter = JSONExporter(db_path)
-    return exporter.export_resource_to_json(resource_type, output_file, pretty)
+    db = Database(db_path)
+    try:
+        exporter = JSONExporter(db)
+        return exporter.export_resource_to_json(resource_type, output_file, pretty)
+    finally:
+        db.engine.dispose()

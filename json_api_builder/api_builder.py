@@ -65,12 +65,12 @@ class APIBuilder(DBDownloadMixin):
 
     def export_to_json(self, output_dir: str, pretty: bool = True) -> dict[str, Any]:
         """Exports all database data to JSON files."""
-        exporter = JSONExporter(self.db_path)
+        exporter = JSONExporter(self.db)
         return exporter.export_to_json(output_dir, pretty)
 
     def export_resource_to_json(
         self, resource_type: str, output_file: str, pretty: bool = True
     ) -> dict[str, Any]:
         """Exports a specific resource type to a JSON file."""
-        exporter = JSONExporter(self.db_path)
+        exporter = JSONExporter(self.db)
         return exporter.export_resource_to_json(resource_type, output_file, pretty)

@@ -55,3 +55,22 @@ def delete_item(db: Session, db_item: models.GenericTable) -> None:
     """Deletes an item from the database."""
     db.delete(db_item)
     db.commit()
+
+
+def create_item_from_dict(
+    db: Session, resource_type: str, item_data: dict
+) -> models.GenericTable:
+    """Creates a new item in the database from a dictionary."""
+    # id, created_at, updated_at are managed by the database
+    item_data.pop("id", None)
+    item_data.pop("created_at", None)
+    item_data.pop("updated_at", None)
+
+    db_item = models.GenericTable(
+        resource_type=resource_type,
+        data=json.dumps(item_data, default=str, ensure_ascii=False),
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item

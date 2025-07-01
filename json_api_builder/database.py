@@ -2,6 +2,8 @@
 Database setup for the JSON API Builder.
 """
 
+import contextlib
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -22,6 +24,7 @@ class Database:
             autocommit=False, autoflush=False, bind=self.engine
         )
 
+    @contextlib.contextmanager
     def get_db(self):
         """Generator function to get a database session."""
         db = self.SessionLocal()

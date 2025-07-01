@@ -20,7 +20,8 @@ def create_resource_router(
     router = APIRouter(prefix=f"/{name}", tags=[name])
 
     def get_db():
-        yield from db_provider.get_db()
+        with db_provider.get_db() as session:
+            yield session
 
     @router.post("/", response_model=model)
     async def create_item_endpoint(item_data: model, db: Session = Depends(get_db)):

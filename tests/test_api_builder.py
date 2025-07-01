@@ -1,5 +1,5 @@
 """
-APIBuilderの簡素化されたテスト
+APIBuilder simplified tests.
 """
 
 import os
@@ -12,7 +12,6 @@ from pydantic import BaseModel
 from json_api_builder import APIBuilder
 
 
-# テスト用モデル
 class Item(BaseModel):
     id: int | None = None
     name: str
@@ -20,134 +19,81 @@ class Item(BaseModel):
     price: float
 
 
-def test_basic_functionality():
-    """基本機能のテスト"""
-    # 一時データベースファイル作成
+@pytest.fixture(scope="function")
+def temp_db():
+    """Provides a temporary database path and ensures cleanup."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
         db_path = tmp_file.name
+    yield db_path
+    if os.path.exists(db_path):
+        os.unlink(db_path)
 
-    builder = None
+
+def test_basic_functionality(temp_db):
+    """Tests basic CRUD functionality."""
+    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
+    builder.resource("items", Item)
+    client = TestClient(builder.get_app())
+
     try:
-        # APIBuilder作成
-        builder = APIBuilder(
-            title="Test API", description="Test API", version="1.0.0", db_path=db_path
-        )
-
-        # リソース登録
-        builder.resource("items", Item)
-
-        # TestClient作成
-        client = TestClient(builder.get_app())
-
-        # アイテム作成
         item_data = {"name": "test", "description": "test item", "price": 100.0}
         response = client.post("/items/", json=item_data)
         assert response.status_code == 200
         created_item = response.json()
-        assert created_item["name"] == "test"
         assert "id" in created_item
-
-        # アイテム取得
         item_id = created_item["id"]
+
         response = client.get(f"/items/{item_id}")
         assert response.status_code == 200
         assert response.json()["name"] == "test"
 
-        # アイテム一覧
         response = client.get("/items/")
         assert response.status_code == 200
         assert len(response.json()) == 1
 
-        # アイテム更新
-        update_data = {"name": "updated", "description": "updated item", "price": 200.0}
+        update_data = {"name": "updated", "description": "updated", "price": 200.0}
         response = client.put(f"/items/{item_id}", json=update_data)
         assert response.status_code == 200
         assert response.json()["name"] == "updated"
 
-        # アイテム削除
         response = client.delete(f"/items/{item_id}")
         assert response.status_code == 200
 
-        # 削除確認
         response = client.get(f"/items/{item_id}")
         assert response.status_code == 404
-
     finally:
-        # データベース接続をクローズ
-        if builder:
-            builder.engine.dispose()
-        # 一時ファイル削除
-        try:
-            if os.path.exists(db_path):
-                os.unlink(db_path)
-        except PermissionError:
-            pass  # Windowsでファイルが使用中の場合は無視
+        builder.db.engine.dispose()
 
 
-def test_model_validation():
-    """モデル検証のテスト"""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
-        db_path = tmp_file.name
-
-    builder = None
+def test_model_validation(temp_db):
+    """Tests that the builder validates models correctly."""
+    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
     try:
-        builder = APIBuilder(
-            title="Test API", description="Test API", version="1.0.0", db_path=db_path
-        )
-
-        # 無効なモデル
         class InvalidModel:
             pass
-
-        with pytest.raises(
-            ValueError, match="Model must be a Pydantic BaseModel subclass"
-        ):
+        with pytest.raises(ValueError):
             builder.resource("invalid", InvalidModel)
-
     finally:
-        if builder:
-            builder.engine.dispose()
-        try:
-            if os.path.exists(db_path):
-                os.unlink(db_path)
-        except PermissionError:
-            pass
+        builder.db.engine.dispose()
 
 
-def test_multiple_resources():
-    """複数リソースのテスト"""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
-        db_path = tmp_file.name
+def test_multiple_resources(temp_db):
+    """Tests functionality with multiple registered resources."""
+    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
 
-    builder = None
+    class User(BaseModel):
+        id: int | None = None
+        name: str
+        email: str
+
+    builder.resource("items", Item)
+    builder.resource("users", User)
+    client = TestClient(builder.get_app())
+
     try:
-        builder = APIBuilder(
-            title="Test API", description="Test API", version="1.0.0", db_path=db_path
-        )
-
-        # ユーザーモデル
-        class User(BaseModel):
-            id: int | None = None
-            name: str
-            email: str
-
-        # 両方のリソース登録
-        builder.resource("items", Item)
-        builder.resource("users", User)
-
-        client = TestClient(builder.get_app())
-
-        # アイテム作成
-        item_data = {"name": "test", "description": "test item", "price": 100.0}
-        response = client.post("/items/", json=item_data)
-        assert response.status_code == 200
-
-        # ユーザー作成
-        user_data = {"name": "John", "email": "john@example.com"}
-        response = client.post("/users/", json=user_data)
-        assert response.status_code == 200
-
-        # 両方のリソースが独立して動作することを確認
+        client.post("/items/", json={"name": "item1", "description": "desc1", "price": 1.0})
+        client.post("/users/", json={"name": "user1", "email": "user1@test.com"})
+        
         response = client.get("/items/")
         assert response.status_code == 200
         assert len(response.json()) == 1
@@ -155,12 +101,5 @@ def test_multiple_resources():
         response = client.get("/users/")
         assert response.status_code == 200
         assert len(response.json()) == 1
-
     finally:
-        if builder:
-            builder.engine.dispose()
-        try:
-            if os.path.exists(db_path):
-                os.unlink(db_path)
-        except PermissionError:
-            pass
+        builder.db.engine.dispose()

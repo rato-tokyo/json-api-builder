@@ -9,10 +9,7 @@ JSONデータを使ったREST APIサーバーを簡単に構築できるPython�
 - 🗄️ **SQLite統合**: 軽量で高性能なSQLiteデータベース
 - 📚 **自動ドキュメント**: FastAPIによる自動Swagger UI
 - 📥 **データベースダウンロード**: ブラウザからDBファイルをダウンロード可能
-- 📤 **JSONエクスポート**: データベースの内容をJSONファイルにエクスポート
-- 🔧 **シンプル設計**: 必要最小限の機能で分かりやすい
-- ✅ **型安全**: 完全な型ヒント対応
-- 🛠️ **ruff統合**: 統一されたコード品質管理
+- 🔄 **JSONインポート/エクスポート**: データベースとJSONファイル間でデータを相互に変換
 
 ## インストール
 
@@ -32,7 +29,7 @@ class Item(BaseModel):
     description: str = Field(description="説明")
     price: float = Field(description="価格", ge=0)
 
-# APIBuilder作成（全パラメータ必須）
+# APIBuilder作成
 builder = APIBuilder(
     title="My API",
     description="シンプルなAPI",
@@ -50,15 +47,43 @@ if __name__ == "__main__":
     builder.run(host="127.0.0.1", port=8000)
 ```
 
-これだけで以下のエンドポイントが自動生成されます：
-
-- `POST /items/` - アイテム作成
-- `GET /items/` - すべてのアイテム取得
-- `GET /items/{id}` - 特定のアイテム取得
-- `PUT /items/{id}` - アイテム更新
-- `DELETE /items/{id}` - アイテム削除
-
 ## 機能
+
+### JSONエクスポート
+
+データベースの内容をJSONファイルとしてエクスポートします。
+
+**APIBuilderインスタンスを使用する方法:**
+```python
+# 全リソースをディレクトリにエクスポート
+builder.export_to_json(output_dir="exported_data")
+
+# 特定のリソースをファイルにエクスポート
+builder.export_resource_to_json(resource_type="items", output_file="items.json")
+```
+
+**関数を直接使用する方法:**
+```python
+from json_api_builder import export_database_to_json
+
+export_database_to_json(db_path="data.db", output_dir="exported_data")
+```
+
+### JSONインポート
+
+JSONファイル（またはそれらを含むディレクトリ）からデータベースを構築します。
+
+```python
+from json_api_builder import import_database_from_json
+
+# ディレクトリ内の全JSONファイルをインポート
+# overwrite=True にすると、既存のデータベースはクリアされます
+import_database_from_json(
+    db_path="new_data.db",
+    input_dir="exported_data",
+    overwrite=True
+)
+```
 
 ### データベースダウンロード
 
@@ -67,86 +92,23 @@ APIサーバー起動後、以下のエンドポイントにアクセスする�
 - **`GET /download/info`**: データベースのファイルパス、サイズ、最終更新日時などの情報をJSON形式で返します。
 - **`GET /download/database`**: データベースファイル（SQLite）を直接ダウンロードします。
 
-### JSONエクスポート
+## 設計方針と妥当性
 
-データベースの内容をJSONファイルとしてエクスポートする機能を提供します。
+本ライブラリは、シンプルさと安定性を最優先に設計されています。過去のバージョンで発生した問題を解決し、より堅牢なアーキテクチャを採用する��めに、以下の設計方針を確立しました。
 
-#### APIBuilderインスタンスを使用する方法
+1.  **明確な責務の分離 (Separation of Concerns)**
+    - **方針**: `APIBuilder` はAPIの構築、`JSONExporter`/`Importer` はデータの入出力、`Database` は接続管理、というように各コンポーネントの責務を明確に分けています。
+    - **妥当性**: これにより、各機能が独立して動作し、変更やデバッグが容易になります。例えば、データベースの接続方法を変更する場合、`Database` クラスのみを修正すればよく、他の部分への影響を最小限に抑えられます。
 
-```python
-# APIBuilderのインスタンスを作成した後
-builder.export_to_json(output_dir="exported_data")
-builder.export_resource_to_json(resource_type="items", output_file="exported_data/items.json")
-```
+2.  **依存性の注入 (Dependency Injection)**
+    - **方針**: `JSONExporter` や `JSONImporter` のようなクラスは、データベースのパス（文字列）を直接受け取るのではなく、初期化済みの `Database` オブジェクトを外部から受け取ります。
+    - **妥当性**: これにより、データベース接続の生成と破棄のライフサイクル管理が、呼び出し元（アプリケーションのメインロジックやテストコード）に一元化されます。結果として、リ��ースの競合による `PermissionError` のような実行時エラーを防ぎ、安定性が大幅に向上しました。また、テスト時にモックオブジェクトを注入しやすくなり、テストの信頼性と保守性が高まります。
 
-#### 関数を直接使用する方法
+3.  **一貫したAPI設計**
+    - **方針**: データベースセッションを取得する `Database.get_db()` は、Pythonで標準的なコンテキストマネージャ（`with`文で使う形式）として統一されています。
+    - **妥当性**: これにより、ライブラリ全体でデータベースセッションの扱い方が一貫し、開発者が使い方を推測しやすくなりました。FastAPIのDI（依存性注入）で必要なジェネレータ形式への変換は、`router.py` 内部でアダプタパターンを用いて吸収しており、ライブラリの利用者や他のコンポーネントに複雑さを感じさせないように配慮しています。
 
-```python
-from json_api_builder import export_database_to_json, export_resource_to_json
-
-# データベース全体をエクスポート
-export_database_to_json(db_path="data.db", output_dir="exported_data")
-
-# 特定のリソースをエクスポート
-export_resource_to_json(db_path="data.db", resource_type="items", output_file="exported_data/items.json")
-```
-
-## API���様
-
-### 自動生成されるエンドポイント
-
-各リソースに対して以下のエンドポイントが自動生成されます：
-
-#### POST /{resource_name}/
-- **説明**: 新しいアイテムを作成
-- **リクエストボディ**: Pydanticモデルに基づくJSON
-- **レスポンス**: 作成されたアイテム（IDを含む）
-
-#### GET /{resource_name}/
-- **説明**: すべてのアイテムを取得
-- **レスポンス**: アイテムリスト
-
-#### GET /{resource_name}/{id}
-- **説明**: 特定のアイテムを取得
-- **パスパラメータ**: `id` - アイテムID
-- **レスポンス**: アイテムデータまたは404エラー
-
-#### PUT /{resource_name}/{id}
-- **説明**: アイテムを更新
-- **パスパラメータ**: `id` - アイテムID
-- **リクエストボディ**: Pydanticモデルに基づくJSON
-- **レスポンス**: 更新されたアイテムまたは404エラー
-
-#### DELETE /{resource_name}/{id}
-- **説明**: アイテムを削除
-- **パスパラメータ**: `id` - アイテムID
-- **レスポンス**: 削除確認メッセージまたは404エラー
-
-### 自動ドキュメント
-
-- **`GET /docs`** - Swagger UI（FastAPI自動生成）
-- **`GET /redoc`** - ReDoc（FastAPI自動生成）
-
-## プロジェクト構造
-
-```
-json-api-builder/
-├── json_api_builder/          # メインパッケージ
-│   ├── __init__.py
-│   ├── api_builder.py         # APIBuilderクラス
-│   ├── crud.py                # CRUD操作
-│   ├── database.py            # データベース設定
-│   ├── db_download.py         # ダウンロード機能
-│   ├── json_export.py         # JSONエクスポート機能
-│   ├── models.py              # SQLAlchemyモデル
-│   └── router.py              # APIルーター生成
-├── examples/                  # 使用例
-├── tests/                     # テスト
-├── main.py                    # 動作確認用
-├── pyproject.toml             # プロジェクト設定・依存関係
-├── README.md
-└── LICENSE
-```
+これらの設計方針は、過去のイテレーションで発生した「ファイルがロックされる」「APIの挙動が不安定になる」といった問題を根本的に解決するためのものです。一度はこの方針から外れたことで問題が再発しましたが、最終的にこの堅牢な設計に戻すことで、現在の安定したバージョンが実現されています。
 
 ## 開発・テスト
 
@@ -162,20 +124,6 @@ pip install -e .[dev]
 
 ```bash
 pytest
-```
-
-### コード品質チェック
-
-プロジェクトはruffを使用してコード品質を管理しています：
-
-```bash
-# リンティングとフォーマットチェック
-ruff check .
-ruff format . --check
-
-# 自動修正
-ruff check . --fix
-ruff format .
 ```
 
 ## ライセンス
