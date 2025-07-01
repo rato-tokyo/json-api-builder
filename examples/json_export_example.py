@@ -12,7 +12,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from json_api_builder import APIBuilder, export_database_to_json, export_resource_to_json
+from json_api_builder import (
+    APIBuilder,
+    export_database_to_json,
+    export_resource_to_json,
+)
 
 
 # データモデル
@@ -150,7 +154,7 @@ def demo_json_export():
         # 1. 関数を使った全データ展開
         print("1️⃣ 全データをJSON展開（関数版）")
         result = export_database_to_json(db_path, str(output_dir))
-        
+
         print(f"   データベース: {result['database_path']}")
         print(f"   出力先: {result['output_directory']}")
         print(f"   エクスポートファイル: {result['exported_files']}")
@@ -162,7 +166,7 @@ def demo_json_export():
         print("2️⃣ 特定リソース（items）のみ展開")
         items_file = output_dir / "items_only.json"
         result = export_resource_to_json(db_path, "items", str(items_file))
-        
+
         print(f"   リソースタイプ: {result['resource_type']}")
         print(f"   出力ファイル: {result['output_file']}")
         print(f"   レコード数: {result['record_count']}")
@@ -197,22 +201,24 @@ def demo_json_export():
 
         # 4. 生成されたファイルの内容確認
         print("4️⃣ 生成されたファイルの内容確認")
-        
+
         # アイテムファイルの確認
         items_json_file = output_dir / "items.json"
         if items_json_file.exists():
-            with open(items_json_file, "r", encoding="utf-8") as f:
+            with open(items_json_file, encoding="utf-8") as f:
                 items_data = json.load(f)
             print(f"   📋 items.json: {len(items_data)}件のアイテム")
-            print(f"      最初のアイテム: {items_data[0]['name']} (¥{items_data[0]['price']:,})")
+            print(
+                f"      最初のアイテム: {items_data[0]['name']} (¥{items_data[0]['price']:,})"
+            )
 
         # ユーザーファイルの確認
         users_json_file = output_dir / "users.json"
         if users_json_file.exists():
-            with open(users_json_file, "r", encoding="utf-8") as f:
+            with open(users_json_file, encoding="utf-8") as f:
                 users_data = json.load(f)
             print(f"   👥 users.json: {len(users_data)}人のユーザー")
-            active_users = [u for u in users_data if u['is_active']]
+            active_users = [u for u in users_data if u["is_active"]]
             print(f"      アクティブユーザー: {len(active_users)}人")
 
         print()
@@ -236,4 +242,4 @@ def demo_json_export():
 
 
 if __name__ == "__main__":
-    demo_json_export() 
+    demo_json_export()

@@ -7,7 +7,6 @@ import os
 import tempfile
 
 import pytest
-from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
 from json_api_builder import APIBuilder
@@ -15,6 +14,7 @@ from json_api_builder import APIBuilder
 
 class ItemModel(BaseModel):
     """Test item model."""
+
     id: int | None = None
     name: str = Field(description="Item Name")
     description: str = Field(description="Description")
@@ -23,6 +23,7 @@ class ItemModel(BaseModel):
 
 class UserModel(BaseModel):
     """Test user model."""
+
     id: int | None = None
     username: str = Field(description="Username")
     email: str = Field(description="Email")
@@ -74,7 +75,7 @@ def sample_app_builder():
                 data=json.dumps(data, ensure_ascii=False),
             )
             session.add(db_user)
-        
+
         session.commit()
 
     yield builder

@@ -3,7 +3,6 @@ CRUD operations for the GenericTable model.
 """
 
 import json
-from typing import Type
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -31,7 +30,9 @@ def get_items(db: Session, resource_type: str) -> list[models.GenericTable]:
     return db.query(models.GenericTable).filter_by(resource_type=resource_type).all()
 
 
-def get_item(db: Session, resource_type: str, item_id: int) -> models.GenericTable | None:
+def get_item(
+    db: Session, resource_type: str, item_id: int
+) -> models.GenericTable | None:
     """Retrieves a single item by its ID and resource type."""
     return (
         db.query(models.GenericTable)

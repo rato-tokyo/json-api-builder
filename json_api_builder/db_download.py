@@ -5,7 +5,9 @@ Database file download functionality.
 import os
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 
 from .database import Database
@@ -26,7 +28,7 @@ class DBDownloadMixin:
         """Adds an endpoint to download the database file."""
 
         @self.app.get(endpoint_path)
-        async def download_database(token: str | None = None):
+        async def download_database(token: str | None = None) -> Response:
             """Downloads the database file."""
             if require_auth:
                 if not auth_token:
@@ -60,11 +62,11 @@ class DBDownloadMixin:
         return self.db.get_db_file_path()
 
 
-def add_download_info_endpoint(app: FastAPI, db_path: str):
+def add_download_info_endpoint(app: FastAPI, db_path: str) -> None:
     """Adds an endpoint to show database download information."""
 
     @app.get("/download/info")
-    async def download_info():
+    async def download_info() -> dict[str, Any]:
         """Gets information about the database file."""
         if not os.path.exists(db_path):
             return {

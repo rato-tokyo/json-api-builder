@@ -3,9 +3,10 @@ Database setup for the JSON API Builder.
 """
 
 import contextlib
+from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base
 
@@ -25,7 +26,7 @@ class Database:
         )
 
     @contextlib.contextmanager
-    def get_db(self):
+    def get_db(self) -> Generator[Session, None, None]:
         """Generator function to get a database session."""
         db = self.SessionLocal()
         try:
@@ -33,7 +34,7 @@ class Database:
         finally:
             db.close()
 
-    def create_tables(self):
+    def create_tables(self) -> None:
         """Creates all tables in the database."""
         Base.metadata.create_all(bind=self.engine)
 
@@ -43,4 +44,3 @@ class Database:
         if url_str.startswith("sqlite:///"):
             return url_str[10:]
         raise ValueError("Database path could not be determined from engine URL.")
-

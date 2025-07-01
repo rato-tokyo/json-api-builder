@@ -28,7 +28,7 @@ class JSONExporter:
         output_path.mkdir(parents=True, exist_ok=True)
 
         with self.db.get_db() as session:
-            export_info = {
+            export_info: dict[str, Any] = {
                 "database_path": db_path,
                 "output_directory": str(output_path.absolute()),
                 "exported_files": [],
@@ -37,11 +37,12 @@ class JSONExporter:
             }
 
             all_items = session.query(GenericTable).all()
-            resources_data: dict[str, list[dict]] = {}
+            resources_data: dict[str, list[dict[str, Any]]] = {}
 
             for item in all_items:
-                if item.resource_type not in resources_data:
-                    resources_data[item.resource_type] = []
+                resource_type = item.resource_type
+                if resource_type not in resources_data:
+                    resources_data[resource_type] = []
 
                 data = json.loads(item.data)
                 data["id"] = item.id
@@ -51,7 +52,7 @@ class JSONExporter:
                 data["updated_at"] = (
                     item.updated_at.isoformat() if item.updated_at else None
                 )
-                resources_data[item.resource_type].append(data)
+                resources_data[resource_type].append(data)
 
             for resource_type, items in resources_data.items():
                 filename = f"{resource_type}.json"
@@ -86,9 +87,7 @@ class JSONExporter:
             }
 
             items = (
-                session.query(GenericTable)
-                .filter_by(resource_type=resource_type)
-                .all()
+                session.query(GenericTable).filter_by(resource_type=resource_type).all()
             )
             if not items:
                 raise ValueError(f"No data found for resource type: {resource_type}")

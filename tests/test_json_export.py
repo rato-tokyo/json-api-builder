@@ -3,7 +3,6 @@ JSON展開機能のテスト
 """
 
 import json
-import os
 import tempfile
 from pathlib import Path
 
@@ -21,6 +20,7 @@ from json_api_builder.database import Database
 
 class ItemModel(BaseModel):
     """テスト用アイテムモデル"""
+
     id: int | None = None
     name: str = Field(description="アイテム名")
     description: str = Field(description="説明")
@@ -29,6 +29,7 @@ class ItemModel(BaseModel):
 
 class UserModel(BaseModel):
     """テスト用ユーザーモデル"""
+
     id: int | None = None
     username: str = Field(description="ユーザー名")
     email: str = Field(description="メールアドレス")
@@ -61,7 +62,7 @@ class TestJSONExporter:
             assert users_file.exists()
 
             # ファイル内容の確認
-            with open(items_file, "r", encoding="utf-8") as f:
+            with open(items_file, encoding="utf-8") as f:
                 items_data = json.load(f)
             assert len(items_data) == 3
             assert items_data[0]["name"] == "Item 1"
@@ -69,7 +70,7 @@ class TestJSONExporter:
             assert "created_at" in items_data[0]
             assert "updated_at" in items_data[0]
 
-            with open(users_file, "r", encoding="utf-8") as f:
+            with open(users_file, encoding="utf-8") as f:
                 users_data = json.load(f)
             assert len(users_data) == 2
             assert users_data[0]["username"] == "user1"
@@ -82,7 +83,7 @@ class TestJSONExporter:
             exporter = JSONExporter(sample_app_builder.db)
             exporter.export_to_json(temp_dir, pretty=False)
             items_file = Path(temp_dir) / "items.json"
-            with open(items_file, "r", encoding="utf-8") as f:
+            with open(items_file, encoding="utf-8") as f:
                 content = f.read()
             assert "\n" not in content
         # db.engine.dispose() # No longer needed with APIBuilder fixture
@@ -102,7 +103,7 @@ class TestJSONExporter:
             assert output_file.exists()
 
             # ファイル内容の確認
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 items_data = json.load(f)
             assert len(items_data) == 3
             assert items_data[0]["name"] == "Item 1"
@@ -115,7 +116,9 @@ class TestJSONExporter:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_file = Path(temp_dir) / "nonexistent.json"
             exporter = JSONExporter(sample_app_builder.db)
-            with pytest.raises(ValueError, match="No data found for resource type: nonexistent"):
+            with pytest.raises(
+                ValueError, match="No data found for resource type: nonexistent"
+            ):
                 exporter.export_resource_to_json("nonexistent", str(output_file))
         # db.engine.dispose() # No longer needed with APIBuilder fixture
 
@@ -123,15 +126,17 @@ class TestJSONExporter:
         """Tests exporting from a nonexistent database file."""
         nonexistent_db_path = "/path/to/nonexistent.db"
         db = Database(nonexistent_db_path)
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             exporter = JSONExporter(db)
-            
+
             with pytest.raises(FileNotFoundError, match="Database file not found"):
                 exporter.export_to_json(temp_dir)
 
             with pytest.raises(FileNotFoundError, match="Database file not found"):
-                exporter.export_resource_to_json("items", str(Path(temp_dir) / "test.json"))
+                exporter.export_resource_to_json(
+                    "items", str(Path(temp_dir) / "test.json")
+                )
         # No need to dispose, as the connection was never made
 
 
@@ -155,7 +160,7 @@ class TestFunctionAPI:
         db_path = sample_app_builder.db.get_db_file_path()
         with tempfile.TemporaryDirectory() as temp_dir:
             output_file = Path(temp_dir) / "test_items.json"
-            
+
             result = export_resource_to_json(db_path, "items", str(output_file))
 
             # 結果の検証
@@ -177,7 +182,9 @@ class TestAPIBuilderIntegration:
 
                 # 特定リソース展開
                 output_file = Path(temp_dir) / "api_items.json"
-                result = sample_app_builder.export_resource_to_json("items", str(output_file))
+                result = sample_app_builder.export_resource_to_json(
+                    "items", str(output_file)
+                )
                 assert result["record_count"] == 3
                 assert output_file.exists()
 
@@ -192,7 +199,7 @@ class TestDirectoryCreation:
         """Tests creation of nested output directories."""
         with tempfile.TemporaryDirectory() as temp_dir:
             nested_dir = Path(temp_dir) / "level1" / "level2" / "output"
-            
+
             exporter = JSONExporter(sample_app_builder.db)
             result = exporter.export_to_json(str(nested_dir))
 
@@ -205,7 +212,7 @@ class TestDirectoryCreation:
         """Tests creation of directories for nested file paths."""
         with tempfile.TemporaryDirectory() as temp_dir:
             nested_file = Path(temp_dir) / "level1" / "level2" / "items.json"
-            
+
             exporter = JSONExporter(sample_app_builder.db)
             result = exporter.export_resource_to_json("items", str(nested_file))
 
@@ -214,4 +221,3 @@ class TestDirectoryCreation:
             assert nested_file.parent.is_dir()
             assert nested_file.exists()
             assert result["record_count"] == 3
- 

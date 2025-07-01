@@ -34,7 +34,7 @@ class JSONImporter:
                 session.query(GenericTable).delete()
                 session.commit()
 
-        import_info = {
+        import_info: dict[str, Any] = {
             "database_path": db_path,
             "input_directory": str(input_path.absolute()),
             "imported_files": [],
@@ -45,7 +45,7 @@ class JSONImporter:
         with self.db.get_db() as session:
             for json_file in input_path.glob("*.json"):
                 resource_type = json_file.stem
-                with open(json_file, "r", encoding="utf-8") as f:
+                with open(json_file, encoding="utf-8") as f:
                     try:
                         items = json.load(f)
                     except json.JSONDecodeError:

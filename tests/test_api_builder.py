@@ -31,7 +31,9 @@ def temp_db():
 
 def test_basic_functionality(temp_db):
     """Tests basic CRUD functionality."""
-    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
+    builder = APIBuilder(
+        title="Test", description="Test", version="1.0", db_path=temp_db
+    )
     builder.resource("items", Item)
     client = TestClient(builder.get_app())
 
@@ -67,10 +69,14 @@ def test_basic_functionality(temp_db):
 
 def test_model_validation(temp_db):
     """Tests that the builder validates models correctly."""
-    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
+    builder = APIBuilder(
+        title="Test", description="Test", version="1.0", db_path=temp_db
+    )
     try:
+
         class InvalidModel:
             pass
+
         with pytest.raises(ValueError):
             builder.resource("invalid", InvalidModel)
     finally:
@@ -79,7 +85,9 @@ def test_model_validation(temp_db):
 
 def test_multiple_resources(temp_db):
     """Tests functionality with multiple registered resources."""
-    builder = APIBuilder(title="Test", description="Test", version="1.0", db_path=temp_db)
+    builder = APIBuilder(
+        title="Test", description="Test", version="1.0", db_path=temp_db
+    )
 
     class User(BaseModel):
         id: int | None = None
@@ -91,9 +99,11 @@ def test_multiple_resources(temp_db):
     client = TestClient(builder.get_app())
 
     try:
-        client.post("/items/", json={"name": "item1", "description": "desc1", "price": 1.0})
+        client.post(
+            "/items/", json={"name": "item1", "description": "desc1", "price": 1.0}
+        )
         client.post("/users/", json={"name": "user1", "email": "user1@test.com"})
-        
+
         response = client.get("/items/")
         assert response.status_code == 200
         assert len(response.json()) == 1

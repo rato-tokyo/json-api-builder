@@ -2,17 +2,17 @@
 json-api-builder: A simple API builder.
 """
 
-from typing import Any, Type
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from .database import Database
 from .db_download import DBDownloadMixin, add_download_info_endpoint
 from .json_export import JSONExporter
-from .models import GenericTable
 from .router import create_resource_router
 
 
@@ -29,7 +29,7 @@ class APIBuilder(DBDownloadMixin):
             description=description,
             version=version,
         )
-        self.models: dict[str, Type[BaseModel]] = {}
+        self.models: dict[str, type[BaseModel]] = {}
 
         add_download_info_endpoint(self.app, db_path)
 
@@ -39,16 +39,16 @@ class APIBuilder(DBDownloadMixin):
         return self.db.engine
 
     @property
-    def SessionLocal(self):
+    def session_local(self) -> sessionmaker[Session]:
         """Returns the SQLAlchemy SessionLocal."""
         return self.db.SessionLocal
 
-    def _validate_model(self, model: Type[BaseModel]) -> None:
+    def _validate_model(self, model: type[BaseModel]) -> None:
         """Validates the Pydantic model."""
         if not issubclass(model, BaseModel):
             raise ValueError("Model must be a Pydantic BaseModel subclass")
 
-    def resource(self, name: str, model: Type[BaseModel]) -> None:
+    def resource(self, name: str, model: type[BaseModel]) -> None:
         """Registers a resource endpoint."""
         self._validate_model(model)
         self.models[name] = model
