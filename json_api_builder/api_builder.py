@@ -2,24 +2,26 @@
 json-api-builder: A simple API builder.
 """
 
+import contextlib
+from collections.abc import Generator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
+from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
-from .database import Database
-from .db_download import add_download_info_endpoint
-from .json_export import JSONExporter
+from .models import Base
 from .router import create_resource_router
 
 
 class APIBuilder:
     """
-    A simple API builder that constructs a FastAPI application with CRUD endpoints,
-    database management, and JSON export/import functionalities.
+    A simple API builder that constructs a FastAPI application.
+    The primary responsibility is to build and run the API server.
     """
 
     def __init__(
@@ -29,9 +31,14 @@ class APIBuilder:
         version: str,
         db_path: str,
     ):
-        self.db = Database(db_path)
-        self.db.create_tables()
-
+        self.engine = create_engine(
+            f"sqlite:///{db_path}",
+            connect_args={"check_same_thread": False},
+            echo=False,
+        )
+        self.SessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=self.engine
+        )
         self.app = FastAPI(
             title=title,
             description=description,
@@ -39,30 +46,34 @@ class APIBuilder:
             lifespan=self._lifespan,
         )
         self.models: dict[str, type[BaseModel]] = {}
-        add_download_info_endpoint(self.app, db_path)
+        self._create_tables()
 
     @asynccontextmanager
     async def _lifespan(self, app: FastAPI) -> Any:
         """Manages the application's lifespan to prevent file locks."""
         yield
-        # On shutdown, dispose the engine to release file handles.
-        self.db.dispose_engine()
+        self.engine.dispose()
 
-    @property
-    def engine(self) -> Engine:
-        """Returns the SQLAlchemy engine."""
-        return self.db.engine
+    def _create_tables(self) -> None:
+        """Creates all tables in the database."""
+        Base.metadata.create_all(bind=self.engine)
 
-    def _validate_model(self, model: type[BaseModel]) -> None:
-        """Validates the Pydantic model."""
-        if not issubclass(model, BaseModel):
-            raise ValueError("Model must be a Pydantic BaseModel subclass")
+    @contextlib.contextmanager
+    def get_db(self) -> Generator[Session, None, None]:
+        """Provides a database session."""
+        db = self.SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     def resource(self, name: str, model: type[BaseModel]) -> None:
         """Registers a resource endpoint."""
-        self._validate_model(model)
+        if not issubclass(model, BaseModel):
+            raise ValueError("Model must be a Pydantic BaseModel subclass")
         self.models[name] = model
-        router = create_resource_router(name, model, self.db)
+        # Pass the get_db method to the router factory
+        router = create_resource_router(name, model, self.get_db)
         self.app.include_router(router)
 
     def get_app(self) -> FastAPI:
