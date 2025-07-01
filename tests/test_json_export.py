@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from json_api_builder import APIBuilder, JSONExporter, export_database_to_json, export_resource_to_json
 
 
-class TestItem(BaseModel):
+class ItemModel(BaseModel):
     """テスト用アイテムモデル"""
     id: int | None = None
     name: str = Field(description="アイテム名")
@@ -21,7 +21,7 @@ class TestItem(BaseModel):
     price: float = Field(description="価格", ge=0)
 
 
-class TestUser(BaseModel):
+class UserModel(BaseModel):
     """テスト用ユーザーモデル"""
     id: int | None = None
     username: str = Field(description="ユーザー名")
@@ -46,8 +46,8 @@ def sample_db():
         )
 
         # リソース登録
-        builder.resource("items", TestItem)
-        builder.resource("users", TestUser)
+        builder.resource("items", ItemModel)
+        builder.resource("users", UserModel)
 
         # サンプルデータを追加
         from sqlalchemy.orm import Session

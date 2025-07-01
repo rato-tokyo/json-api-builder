@@ -1,18 +1,21 @@
 """
-データベースファイルダウンロード機能
-
-APIBuilderにデータベースファイルのダウンロードエンドポイントを追加する機能を提供します。
+Database file download functionality.
 """
 
 import os
 from datetime import datetime
 
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+
+from .database import Database
 
 
 class DBDownloadMixin:
-    """データベースダウンロード機能を提供するMixin"""
+    """Mixin to add a database download endpoint."""
+
+    app: FastAPI
+    db: Database
 
     def add_db_download_endpoint(
         self,
@@ -20,20 +23,11 @@ class DBDownloadMixin:
         require_auth: bool = False,
         auth_token: str | None = None,
     ) -> None:
-        """
-        データベースファイルのダウンロードエンドポイントを追加
-
-        Args:
-            endpoint_path: エンドポイントのパス
-            require_auth: 認証を必要とするか
-            auth_token: 認証に使用するトークン（require_auth=Trueの場合必須）
-        """
+        """Adds an endpoint to download the database file."""
 
         @self.app.get(endpoint_path)
         async def download_database(token: str | None = None):
-            """データベースファイルをダウンロード"""
-
-            # 認証チェック
+            """Downloads the database file."""
             if require_auth:
                 if not auth_token:
                     raise HTTPException(
@@ -44,17 +38,14 @@ class DBDownloadMixin:
                         status_code=401, detail="Invalid authentication token"
                     )
 
-            # データベースファイルの存在確認
-            db_path = self._get_db_file_path()
+            db_path = self.db.get_db_file_path()
             if not os.path.exists(db_path):
                 raise HTTPException(status_code=404, detail="Database file not found")
 
-            # ファイルサイズチェック
             file_size = os.path.getsize(db_path)
             if file_size == 0:
                 raise HTTPException(status_code=404, detail="Database file is empty")
 
-            # ダウンロード用のファイル名を生成（タイムスタンプ付き）
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             download_filename = f"database_backup_{timestamp}.db"
 
@@ -62,31 +53,19 @@ class DBDownloadMixin:
                 path=db_path,
                 filename=download_filename,
                 media_type="application/octet-stream",
-                headers={
-                    "Content-Disposition": f"attachment; filename={download_filename}",
-                    "Content-Length": str(file_size),
-                },
             )
 
     def _get_db_file_path(self) -> str:
-        """データベースファイルのパスを取得"""
-        # SQLAlchemyのengine URLからファイルパスを抽出
-        url_str = str(self.engine.url)
-        if url_str.startswith("sqlite:///"):
-            return url_str[10:]  # "sqlite:///" を除去
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Database download is only supported for SQLite databases",
-            )
+        """Gets the database file path from the Database object."""
+        return self.db.get_db_file_path()
 
 
-def add_download_info_endpoint(app, db_path: str):
-    """ダウンロード情報を表示するエンドポイントを追加（デバッグ用）"""
+def add_download_info_endpoint(app: FastAPI, db_path: str):
+    """Adds an endpoint to show database download information."""
 
     @app.get("/download/info")
     async def download_info():
-        """データベースファイルの情報を取得"""
+        """Gets information about the database file."""
         if not os.path.exists(db_path):
             return {
                 "exists": False,
