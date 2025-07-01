@@ -7,6 +7,7 @@ SQLAlchemy + FastAPI + Pydanticの標準的な組み合わせを使用した
 
 import json
 from datetime import datetime
+from typing import Any
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
@@ -39,6 +40,7 @@ class APIBuilder(DBDownloadMixin):
         self.title = title
         self.description = description
         self.version = version
+        self.db_path = db_path
 
         # データベース設定（ファイルベースSQLiteのみ）
         self.engine = create_engine(
@@ -195,3 +197,40 @@ class APIBuilder(DBDownloadMixin):
     def run(self, host: str, port: int, reload: bool = False) -> None:
         """サーバー起動"""
         uvicorn.run(self.app, host=host, port=port, reload=reload)
+
+    def export_to_json(self, output_dir: str, pretty: bool = True) -> dict[str, Any]:
+        """
+        データベースの全データをJSONファイルとして展開
+
+        Args:
+            output_dir: 出力先ディレクトリ
+            pretty: JSONファイルを整形するか
+
+        Returns:
+            エクスポート結果の情報
+        """
+        # 遅延インポートで循環インポートを回避
+        from .json_export import JSONExporter
+        
+        exporter = JSONExporter(self.db_path)
+        return exporter.export_to_json(output_dir, pretty)
+
+    def export_resource_to_json(
+        self, resource_type: str, output_file: str, pretty: bool = True
+    ) -> dict[str, Any]:
+        """
+        特定のリソースタイプのデータをJSONファイルとして出力
+
+        Args:
+            resource_type: エクスポートするリソースタイプ
+            output_file: 出力ファイルパス
+            pretty: JSONファイルを整形するか
+
+        Returns:
+            エクスポート結果の情報
+        """
+        # 遅延インポートで循環インポートを回避
+        from .json_export import JSONExporter
+        
+        exporter = JSONExporter(self.db_path)
+        return exporter.export_resource_to_json(resource_type, output_file, pretty)
