@@ -3,9 +3,8 @@ Dynamic router generation for API resources.
 """
 
 import json
-
-from typing import Any
 from collections.abc import Generator
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel

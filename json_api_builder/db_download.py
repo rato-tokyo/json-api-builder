@@ -4,7 +4,6 @@ Database file download functionality.
 
 import os
 from datetime import datetime
-
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Response
