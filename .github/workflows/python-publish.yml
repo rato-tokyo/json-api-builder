@@ -36,10 +36,10 @@ jobs:
         run: |
           pytest
       
-      - name: Check code style and types
+      - name: Check code quality
         run: |
-          ruff format . --check
           ruff check .
+          ruff format . --check
           find . -type f -name "*.py" | xargs pyupgrade --py310-plus
           vulture . --min-confidence 80
           mypy json_api_builder/
