@@ -89,6 +89,49 @@ pip install -e .[dev]
 pytest
 ```
 
+### テストの実装について
+
+本ライブラリを使用したアプリケーションのテストを`pytest`で実装する場合、`TestClient`と一時的なデータベースファイルを組み合わせることで、ファイルロックを回避した安定したテストが可能です。
+
+`APIBuilder`に組み込まれた`lifespan`イベントにより、`TestClient`のコンテキスト（`with`文）が終了する際にデータベース接続が自動的にクローズされます。
+
+**テストコードの例:**
+```python
+import os
+import tempfile
+from collections.abc import Generator
+
+import pytest
+from fastapi.testclient import TestClient
+from pydantic import BaseModel
+from json_api_builder import APIBuilder
+
+# テスト対象のモデル
+class Item(BaseModel):
+    id: int | None = None
+    name: str
+
+# pytestフィクスチャ
+@pytest.fixture
+def client() -> Generator[TestClient, None, None]:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
+        db_path = tmp_file.name
+    
+    builder = APIBuilder("Test API", "Test", "1.0", db_path)
+    builder.resource("items", Item)
+
+    with TestClient(builder.get_app()) as test_client:
+        yield test_client
+    
+    os.unlink(db_path)
+
+# テスト関数
+def test_create_item(client: TestClient):
+    response = client.post("/items/", json={"name": "Test Item"})
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test Item"
+```
+
 ## ライセンス
 
 MIT License

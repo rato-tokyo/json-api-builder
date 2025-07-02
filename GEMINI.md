@@ -55,9 +55,12 @@ PowerShellなどの一部のシェルでは、コミットメッセージにス�
 ```shell
 git commit -m "feat:add-new-feature"
 ```
-```shell
-git commit -m feat:add-new-feature
-```
+---
+## ユーザーからの問い合わせ対応について
+
+ユーザーからの問い合わせに対する回答は、後から参照できるよう、必ずMarkdownファイルとして生成し、`docs/inquiries/`ディレクトリに保存してください。
+
+ファイル名は `YYYYMMDD_inquiry_summary.md` のように、日付と内容の要約を含めることを推奨します。
 
 ---
 ### ライブラリ情報の収集について
