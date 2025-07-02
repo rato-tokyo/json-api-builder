@@ -12,7 +12,7 @@
 ## 主な機能
 
 -   **CRUD APIの自動生成**: `AppBuilder` にモデルを追加するだけで、CRUD操作が可能なエンドポイントが利用可能になります。
--   **JSONから���DB生成**: 特定のディレクトリ構造を持つJSONファイル群から、データベースを生成するユーティリティ関数を提供します。
+-   **JSONからDB生成**: 特定のディレクトリ構造を持つJSONファイル群から、データベースを生成するユーティリティ関数を提供します。
 -   **自動APIドキュメント**: `/docs` でSwagger UIが利用可能。
 
 詳細は��以下のドキュメントを参照してください。
@@ -47,7 +47,7 @@ builder = AppBuilder(
 # 3. リソースを追加する
 builder.add_resource(model=Hero, path="/heroes")
 
-# 4. アプリケーションを���得する
+# 4. アプリケーションを取得する
 app = builder.get_app()
 ```
 **サーバーの起動:**
@@ -57,24 +57,63 @@ uvicorn main:app --reload
 
 ### JSONからのデータベース生成
 
-`generate_db.py` を作成し、以下のコードを記述します。
+`generate_db_from_directory` 関数は、特定のディレクトリ構造からデータベースを生成します。
+
+#### 1. フォルダとファイルの準備
+
+`input_dir` として指定するディレクトリ（例: `json_data`）の直下に、**テーブル名と同じ名前のサブディレクトリ**を作成します。その中に、JSONファイルを用意します。
+
+**形式A: ファイル名がIDとなる個別のJSONファイル**
+
+各JSONファイルには、`id` を除くレコードのデータを含めます。`id` はファイル名から自動的に割り当てられます。
+
+```
+json_data/
+└── users/                <-- テーブル名 'users'
+    ├── 1.json
+    |   { "name": "Alice" }
+    └── 2.json
+        { "name": "Bob" }
+└── posts/                <-- テーブル名 'posts'
+    ├── 101.json
+    |   { "title": "First Post", "user_id": 1 }
+    └── 102.json
+        { "title": "Second Post", "user_id": 1 }
+```
+
+**形式B: `all.json` に全データをまとめる**
+
+`all.json` という名前のファイルに、`id` をキーとするオブジェクトとして全データを記述します。
+
+```
+json_data/
+└── users/                <-- テーブル名 'users'
+    └── all.json
+        {
+          "1": { "name": "Alice" },
+          "2": { "name": "Bob" }
+        }
+```
+*注意: `all.json` が存在する場合、同じディレクトリ内の他の `{id}.json` ファイルは無視されます。*
+
+#### 2. 生成スクリプトの作成
 
 ```python
 # generate_db.py
 from sqlmodel import Field, SQLModel
 from json_api_builder import generate_db_from_directory
 
-# 1. データベースに対応するモデルを定義
+# データベースに対応するモデルを定義
 class User(SQLModel, table=True):
     __tablename__ = "users"
     id: int | None = Field(default=None, primary_key=True)
     name: str
 
-# 2. 生成関数を呼���出す
+# 生成関数を呼び出す
 generate_db_from_directory(
     models=[User],
     db_path="generated_database.db",
-    input_dir="path/to/your/json_data",
+    input_dir="json_data", # 上で準備したディレクトリ
     overwrite=True
 )
 
