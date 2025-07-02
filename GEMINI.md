@@ -4,33 +4,47 @@
 
 ---
 
-## コード品質を維持するための推奨手順
+## コード品質の維持とCIワークフロー
 
-コミットする前に、以下のコマンドをすべて実行し、エラーが発生しないことを確認してください。これにより、CIワークフローの失敗を防ぐことができます。
+このプロジェクトでは、コミット前にローカルでコード品質チェックを行うことで、CIワークフローの成功を保証する体制を推奨しています。
 
-**注記**: コンテキストの消費を抑えるため、不要なログ出力を減らす`--quiet`フラグなどの使用を推奨します。
+**コミット前のルール:**
+**必ず `品質チェックコマンド` を実行し、すべてのチェックが成功することを確認してください。**
+これにより、GitHub Actionsで実行されるワークフローとの乖離がなくなり、CIの失敗を防ぐことができます。
 
-### 1. 自動修正とフォーマット
+---
+
+### 品質チェックコマンド (コミット前に実行)
+
+CIで実行される内容と完全に一致しています。これらのコマンドがすべて成功すれば、CIも成功します。
+
 ```shell
-# ruffによるリントエラーの自動修正とコードフォーマット（静かに実行）
-ruff check . --fix --quiet
-ruff format . --quiet
-```
+# 1. ruffによるリントエラーのチェック
+ruff check .
 
-### 2. Python構文のアップグレード
-PowerShell環境では、以下のコマンドを実行してください。
-```powershell
-# Python 3.10以降の構文にアップグレード
-Get-ChildItem -Recurse -Filter *.py | ForEach-Object { pyupgrade --py310-plus $_.FullName }
-```
+# 2. ruffによるフォーマットのチェック
+ruff format . --check
 
-### 3. 品質チェック
-```shell
-# 未使用コードの検出
+# 3. vultureによる未使用コードの検出
 vulture . --min-confidence 80
 
-# 型チェック
+# 4. mypyによる型チェック
 mypy json_api_builder/
+```
+
+### 自動修正コマンド (任意)
+
+品質チェックで問題が検出された場合に、それらを自動で修正するためのコマンドです。
+
+```shell
+# ruffによるリントエラーの自動修正
+ruff check . --fix
+
+# ruffによるコードフォーマット
+ruff format .
+
+# Python構文のアップグレード (PowerShell環境)
+Get-ChildItem -Recurse -Filter *.py | ForEach-Object { pyupgrade --py310-plus $_.FullName }
 ```
 ---
 ## Gitのコミットについて
@@ -41,7 +55,6 @@ mypy json_api_builder/
 ```shell
 git commit -m "feat: 新しい機能を追加"
 ```
-
 ---
 ### ライブラリ情報の収集について
 

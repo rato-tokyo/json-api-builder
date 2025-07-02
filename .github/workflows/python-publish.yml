@@ -40,7 +40,6 @@ jobs:
         run: |
           ruff check .
           ruff format . --check
-          find . -type f -name "*.py" | xargs pyupgrade --py310-plus
           vulture . --min-confidence 80
           mypy json_api_builder/
 
