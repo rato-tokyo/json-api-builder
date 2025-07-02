@@ -10,9 +10,9 @@ CIでも同様のチェックが実行されます。
 ```shell
 # ruffによるリントエラーの自動修正
 ruff check . --fix
-
-# ruffによるコードフォーマット
-ruff format .
+ruff format . --quiet
+pyupgrade --py310-plus **/*.py
+vulture . --min-confidence 80
 ```
 
 ### 2. Python構文のアップグレード

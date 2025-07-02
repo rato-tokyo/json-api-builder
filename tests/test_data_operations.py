@@ -7,20 +7,25 @@ import os
 import tempfile
 from pathlib import Path
 
-from json_api_builder import export_database_to_json, import_database_from_json
-from json_api_builder.models import Base, GenericTable
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from json_api_builder import export_database_to_json, import_database_from_json
+from json_api_builder.models import Base, GenericTable
 
 
 def setup_test_db(db_path: str):
     """Helper function to create and populate a test database."""
     engine = create_engine(f"sqlite:///{db_path}")
     Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    session.add(GenericTable(resource_type="items", data='{"name": "Item 1", "price": 100}'))
-    session.add(GenericTable(resource_type="users", data='{"username": "user1", "age": 25}'))
+    session_cls = sessionmaker(bind=engine)
+    session = session_cls()
+    session.add(
+        GenericTable(resource_type="items", data='{"name": "Item 1", "price": 100}')
+    )
+    session.add(
+        GenericTable(resource_type="users", data='{"username": "user1", "age": 25}')
+    )
     session.commit()
     session.close()
     engine.dispose()
@@ -51,8 +56,8 @@ def test_export_import_cycle():
 
         # 4. Verify the content of the new database
         engine_dest = create_engine(f"sqlite:///{db_path_dest}")
-        SessionDest = sessionmaker(bind=engine_dest)
-        session_dest = SessionDest()
+        session_dest_cls = sessionmaker(bind=engine_dest)
+        session_dest = session_dest_cls()
         items = session_dest.query(GenericTable).filter_by(resource_type="items").all()
         users = session_dest.query(GenericTable).filter_by(resource_type="users").all()
         assert len(items) == 1

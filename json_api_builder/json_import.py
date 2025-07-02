@@ -25,8 +25,8 @@ def import_database_from_json(
 
     engine = create_engine(f"sqlite:///{db_path}")
     Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = session_local()
 
     import_info: dict[str, Any] = {
         "database_path": db_path,
@@ -40,7 +40,7 @@ def import_database_from_json(
         input_path = Path(input_dir)
         for json_file in input_path.glob("*.json"):
             resource_type = json_file.stem
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 items = json.load(f)
 
             count = 0
@@ -55,7 +55,7 @@ def import_database_from_json(
                     )
                     db.add(db_item)
                     count += 1
-            
+
             db.commit()
             if count > 0:
                 import_info["imported_files"].append(json_file.name)

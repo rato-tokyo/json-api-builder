@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .models import Base, GenericTable
+from .models import GenericTable
 
 
 def export_database_to_json(
@@ -24,12 +24,12 @@ def export_database_to_json(
         raise FileNotFoundError(f"Database file not found: {db_path}")
 
     engine = create_engine(f"sqlite:///{db_path}")
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = SessionLocal()
+    session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = session_local()
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    
+
     export_info: dict[str, Any] = {
         "database_path": db_path,
         "output_directory": str(output_path.absolute()),
@@ -49,8 +49,12 @@ def export_database_to_json(
 
             data = json.loads(item.data)
             data["id"] = item.id
-            data["created_at"] = item.created_at.isoformat() if item.created_at else None
-            data["updated_at"] = item.updated_at.isoformat() if item.updated_at else None
+            data["created_at"] = (
+                item.created_at.isoformat() if item.created_at else None
+            )
+            data["updated_at"] = (
+                item.updated_at.isoformat() if item.updated_at else None
+            )
             resources_data[resource_type].append(data)
 
         for resource_type, items in resources_data.items():

@@ -25,7 +25,7 @@ def create_resource_router(
             yield session
 
     @router.post("/", response_model=model)
-    async def create_item(item_data: model, db: Session = Depends(get_db)):  # type: ignore
+    async def create_item(item_data: model, db: Session = Depends(get_db)) -> Any:  # type: ignore
         data_dict = item_data.model_dump(exclude={"id"})
         db_item = GenericTable(
             resource_type=name,
@@ -39,12 +39,12 @@ def create_resource_router(
         return response_data
 
     @router.get("/", response_model=list[model])
-    async def get_items(db: Session = Depends(get_db)):
+    async def get_items(db: Session = Depends(get_db)) -> list[Any]:
         db_items = db.query(GenericTable).filter_by(resource_type=name).all()
         return [(json.loads(item.data) | {"id": item.id}) for item in db_items]
 
     @router.get("/{item_id}", response_model=model)
-    async def get_item(item_id: int, db: Session = Depends(get_db)):
+    async def get_item(item_id: int, db: Session = Depends(get_db)) -> Any:
         db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")
@@ -53,7 +53,7 @@ def create_resource_router(
         return response_data
 
     @router.put("/{item_id}", response_model=model)
-    async def update_item(item_id: int, item_data: model, db: Session = Depends(get_db)):  # type: ignore
+    async def update_item(item_id: int, item_data: model, db: Session = Depends(get_db)) -> Any:  # type: ignore
         db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")
@@ -66,7 +66,7 @@ def create_resource_router(
         return response_data
 
     @router.delete("/{item_id}")
-    async def delete_item(item_id: int, db: Session = Depends(get_db)):
+    async def delete_item(item_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
         db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")

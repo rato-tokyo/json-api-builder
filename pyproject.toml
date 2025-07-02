@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "json-api-builder"
-version = "0.1.0"
+version = "0.1.1"
 description = "JSONデータ保存に特化したFastAPIサーバーを簡単に構築できるPythonライブラリ"
 readme = "README.md"
 license = "MIT"
@@ -63,7 +63,6 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
-disable_error_code = ["attr-defined", "index", "arg-type", "assignment", "valid-type"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

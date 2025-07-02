@@ -11,7 +11,6 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base
