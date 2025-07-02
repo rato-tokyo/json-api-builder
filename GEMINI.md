@@ -33,32 +33,32 @@ mypy json_api_builder/
 ```
 
 **mypyに関する注記:**
-SQLAlchemyの動的な性質により、`mypy`はいくつかの型エラーを誤って検出します。これを解決するための公式プラグイン `sqlalchemy-mypy-plugin` は、現在このプロジェクトの依存関係と競合するため利用できません。
-そのため、`pyproject.toml`の`[tool.mypy]`セクションで、特定のエラーコードを意図的に無効化しています。`# type: ignore`コメントをコードに追加するのではなく、この設定ファイルで一元管理する方針です。
+SQLAlchemyの動的な性質により、`mypy`はいくつかの型エラーを誤って検出します。これを解決するため、`pyproject.toml`の`[tool.mypy]`セクションで、特定のエラーコードを意図的に無効化しています。
 
 ### 自動修正コマンド (任意)
 
 品質チェックで問題が検出された場合に、それらを自動で修正するためのコマンドです。
 
 ```shell
-# ruffによるリントエラーの自動修正
+# ruffによるリントエラーの自動修正とコードフォーマット
 ruff check . --fix
-
-# ruffによるコードフォーマット
 ruff format .
-
-# Python構文のアップグレード (PowerShell環境)
-Get-ChildItem -Recurse -Filter *.py | ForEach-Object { pyupgrade --py310-plus $_.FullName }
 ```
 ---
 ## Gitのコミットについて
 
-コミットメッセージは��シェルの解釈による予期せぬトラブルを避けるため、常に一文で完結させてください。
+PowerShellなどの一部のシェルでは、コミットメッセージにスペースが含まれていると、引数の解釈で予期せぬエラーが発生することがあります。
+
+トラブルを避けるため、コミットメッセージは**スペースを含まない一文**にするか、複数単語の場合はクォーテーションで囲まずにハイフンでつなぐことを推奨します。
 
 **良い例:**
 ```shell
-git commit -m "feat: 新しい機能を追加"
+git commit -m "feat:add-new-feature"
 ```
+```shell
+git commit -m feat:add-new-feature
+```
+
 ---
 ### ライブラリ情報の収集について
 
