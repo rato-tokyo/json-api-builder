@@ -15,7 +15,9 @@ from .models import GenericTable
 
 
 def create_resource_router(
-    name: str, model: type[BaseModel], get_db_cm: Callable[[], AbstractContextManager[Session]]
+    name: str,
+    model: type[BaseModel],
+    get_db_cm: Callable[[], AbstractContextManager[Session]],
 ) -> APIRouter:
     """Creates a FastAPI router with CRUD endpoints for a given resource."""
     router = APIRouter(prefix=f"/{name}", tags=[name])
@@ -45,7 +47,9 @@ def create_resource_router(
 
     @router.get("/{item_id}", response_model=model)
     async def get_item(item_id: int, db: Session = Depends(get_db)) -> Any:
-        db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+        db_item = (
+            db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+        )
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")
         response_data = json.loads(db_item.data)
@@ -53,8 +57,12 @@ def create_resource_router(
         return response_data
 
     @router.put("/{item_id}", response_model=model)
-    async def update_item(item_id: int, item_data: model, db: Session = Depends(get_db)) -> Any:  # type: ignore
-        db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+    async def update_item(
+        item_id: int, item_data: model, db: Session = Depends(get_db)
+    ) -> Any:  # type: ignore
+        db_item = (
+            db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+        )
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")
         data_dict = item_data.model_dump(exclude={"id"})
@@ -66,8 +74,12 @@ def create_resource_router(
         return response_data
 
     @router.delete("/{item_id}")
-    async def delete_item(item_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
-        db_item = db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+    async def delete_item(
+        item_id: int, db: Session = Depends(get_db)
+    ) -> dict[str, str]:
+        db_item = (
+            db.query(GenericTable).filter_by(resource_type=name, id=item_id).first()
+        )
         if not db_item:
             raise HTTPException(status_code=404, detail="Item not found")
         db.delete(db_item)
