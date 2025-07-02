@@ -8,29 +8,19 @@ CIでも同様のチェックが実行されます。
 ### 1. 自動修正とフォーマット
 
 ```shell
-# ruffによるリントエラーの自動修正
-ruff check . --fix
 ruff format . --quiet
 pyupgrade --py310-plus **/*.py
-vulture . --min-confidence 80
+vulture . --min-confidence 100
 ```
 
-### 2. Python構文のアップグレード
+### 2. 品質チェック
 
 ```shell
-# Python 3.10以降の構文にアップグレード
-pyupgrade --py310-plus json_api_builder/ tests/ examples/ main.py
+ruff check . --fix --quiet
+mypy . --no-error-summary
+vulture . --min-confidence 100
 ```
 
-### 3. 品質チェック
-
-```shell
-# 未使用コードの検出
-vulture . --min-confidence 80
-
-# 型チェック
-mypy json_api_builder/
-```
 ---
 ### ライブラリ情報の収集について
 
