@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "json-api-builder"
-version = "0.2.0"
+version = "0.3.0"
 description = "A simple library to build robust REST APIs with automatic CRUD endpoints using FastAPI, SQLModel, and FastCRUD."
 readme = "README.md"
 license = "MIT"

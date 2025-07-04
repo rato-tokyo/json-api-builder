@@ -2,10 +2,10 @@
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlmodel import SQLModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlmodel import Field, SQLModel
 
 from json_api_builder import AppBuilder
+
 
 # --- 1. テスト用のモデル定義 ---
 class Hero(SQLModel, table=True):
@@ -14,15 +14,16 @@ class Hero(SQLModel, table=True):
     secret_name: str
     age: int | None = None
 
+
 # --- 2. 非同期HTTPクライアントのフィクスチャ ---
 @pytest_asyncio.fixture(name="client")
 async def client_fixture() -> AsyncClient:
     # 各テストごとに完全に独立したインメモリDBを使用
-    TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-    
-    builder = AppBuilder(db_path=TEST_DATABASE_URL)
+    test_database_url = "sqlite+aiosqlite:///:memory:"
+
+    builder = AppBuilder(db_path=test_database_url)
     builder.add_resource(Hero, path="/heroes")
-    
+
     app = builder.get_app()
 
     # テーブルを作成
@@ -37,6 +38,7 @@ async def client_fixture() -> AsyncClient:
     async with builder.engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
+
 # --- 3. テストケース ---
 @pytest.mark.asyncio
 async def test_full_crud_cycle(client: AsyncClient):
@@ -46,7 +48,7 @@ async def test_full_crud_cycle(client: AsyncClient):
         json={"name": "Deadpond", "secret_name": "Dive Wilson", "age": 12},
     )
     assert response.status_code == 200
-    
+
     # Read (to get the created item with its ID)
     response = await client.get("/heroes")
     assert response.status_code == 200

@@ -1,6 +1,7 @@
 # json_api_builder/builder.py
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastcrud import crud_router
@@ -20,13 +21,13 @@ class AppBuilder:
         self.engine = create_async_engine(db_path, echo=False)
 
         @asynccontextmanager
-        async def lifespan(app: FastAPI):
+        async def lifespan(app: FastAPI) -> AsyncGenerator[None, Any]:
             await self._create_db_and_tables()
             yield
 
         self.app = FastAPI(lifespan=lifespan, title=title, version=version)
 
-    async def _create_db_and_tables(self):
+    async def _create_db_and_tables(self) -> None:
         async with self.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
@@ -40,7 +41,7 @@ class AppBuilder:
         create_schema: type[SQLModel] | None = None,
         update_schema: type[SQLModel] | None = None,
         path: str | None = None,
-    ):
+    ) -> None:
         """
         Adds a new CRUD resource to the application.
 
@@ -50,7 +51,7 @@ class AppBuilder:
             update_schema: The Pydantic/SQLModel schema for updating items. Defaults to `model`.
             path: The URL path for the resource. Defaults to `/model_name_plural`.
         """
-        table_name = model.__tablename__
+        table_name = str(model.__tablename__)
         resource_path = path or f"/{table_name}"
 
         self.app.include_router(

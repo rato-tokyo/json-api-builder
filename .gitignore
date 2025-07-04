@@ -146,3 +146,4 @@ Thumbs.db
 
 .ruff_cache/
 GEMINI.md
+tests/test_artifacts/

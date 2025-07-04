@@ -2,17 +2,16 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Type
 
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 
 def generate_db_from_directory(
-    models: List[Type[SQLModel]],
+    models: list[type[SQLModel]],
     db_path: str,
     input_dir: str,
     overwrite: bool = False,
-):
+) -> None:
     """
     Scans a directory and populates the database from JSON files.
 
@@ -25,7 +24,7 @@ def generate_db_from_directory(
     # Use a synchronous engine for this standalone script
     engine = create_engine(f"sqlite:///{db_path}")
 
-    if overwrite and os.path.exists(engine.url.database):
+    if overwrite and engine.url.database and os.path.exists(engine.url.database):
         os.remove(engine.url.database)
 
     SQLModel.metadata.create_all(engine)
@@ -33,27 +32,27 @@ def generate_db_from_directory(
 
     with Session(engine) as session:
         for table_name, model in model_map.items():
-            table_path = Path(input_dir) / table_name
+            table_path = Path(input_dir) / str(table_name)
             if not table_path.is_dir():
                 continue
 
             all_json_path = table_path / "all.json"
             if all_json_path.exists():
-                with open(all_json_path, "r", encoding="utf-8") as f:
+                with open(all_json_path, encoding="utf-8") as f:
                     data = json.load(f)
                     for item_id, item_data in data.items():
-                        item_data['id'] = item_data.get('id', int(item_id))
+                        item_data["id"] = item_data.get("id", int(item_id))
                         db_item = model.model_validate(item_data)
                         session.add(db_item)
             else:
                 for json_file in table_path.glob("*.json"):
-                    with open(json_file, "r", encoding="utf-8") as f:
+                    with open(json_file, encoding="utf-8") as f:
                         item_data = json.load(f)
                         item_id = json_file.stem
-                        item_data['id'] = item_data.get('id', int(item_id))
+                        item_data["id"] = item_data.get("id", int(item_id))
                         db_item = model.model_validate(item_data)
                         session.add(db_item)
-        
+
         session.commit()
-    
+
     engine.dispose()

@@ -12,10 +12,11 @@
 ## 主な機能
 
 -   **CRUD APIの自動生成**: `AppBuilder` にモデルを追加するだけで、CRUD操作が可能なエンドポイントが利用可能になります。
+-   **柔軟な���キーマ設定**: 作成時と更新時で異なるバリデーションスキーマを適用できます。
 -   **JSONからDB生成**: 特定のディレクトリ構造を持つJSONファイル群から、データベースを生成するユーティリティ関数を提供します。
 -   **自動APIドキュメント**: `/docs` でSwagger UIが利用可能。
 
-詳細は��以下のドキュメントを参照してください。
+詳細は以下のドキュメントを参照してください。
 -   [**APIリファレンス**](./docs/api_reference.md)
 -   [**データベース仕様**](./docs/database.md)
 
@@ -23,7 +24,7 @@
 
 ### APIサーバーの構築
 
-`main.py` を作成し、以下のコードを記述します。
+`AppBuilder` を使って、モデルからAPIを構築します。
 
 ```python
 # main.py
@@ -31,11 +32,17 @@ from sqlmodel import Field, SQLModel
 from json_api_builder import AppBuilder
 
 # 1. モデルを定義する
-class Hero(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class HeroBase(SQLModel):
     name: str = Field(index=True)
     secret_name: str
     age: int | None = Field(default=None, index=True)
+
+class Hero(HeroBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+# 作成時用のスキーマ（idは不要）
+class HeroCreate(HeroBase):
+    pass
 
 # 2. ビルダーを使ってアプリを構築する
 builder = AppBuilder(
@@ -45,7 +52,12 @@ builder = AppBuilder(
 )
 
 # 3. リソースを追加する
-builder.add_resource(model=Hero, path="/heroes")
+# pathを省略すると、テーブル名から自動的に "/heroes" が設定されます。
+builder.add_resource(
+    model=Hero,
+    create_schema=HeroCreate,
+    path="/heroes"
+)
 
 # 4. アプリケーションを取得する
 app = builder.get_app()
@@ -63,38 +75,36 @@ uvicorn main:app --reload
 
 `input_dir` として指定するディレクトリ（例: `json_data`）の直下に、**テーブル名と同じ名前のサブディレクトリ**を作成します。その中に、JSONファイルを用意します。
 
-**形式A: ファイル名がIDとなる個別のJSONファイル**
+**IDの決定**:
+レコードの `id` は、まずJSONファイル内の `id` フィールドが使われます。もし存在しない場合は、ファイル名（拡張子を除く）が `id` として扱われます。
 
-各JSONファイルには、`id` を除くレコードのデータを含めます。`id` はファイル名から自動的に割り当てられます。
-
+**形式A: 個別のJSONファイル**
 ```
 json_data/
 └── users/                <-- テーブル名 'users'
-    ├── 1.json
+    ├── 1.json            <-- id: 1
     |   { "name": "Alice" }
-    └── 2.json
+    └── 2.json            <-- id: 2
         { "name": "Bob" }
-└── posts/                <-- テーブル名 'posts'
+└── posts/
     ├── 101.json
     |   { "title": "First Post", "user_id": 1 }
-    └── 102.json
-        { "title": "Second Post", "user_id": 1 }
+    └── post_with_id.json <-- id: post_with_id (非推奨)
+        { "id": 102, "title": "Second Post", "user_id": 1 }
 ```
 
 **形式B: `all.json` に全データをまとめる**
-
 `all.json` という名前のファイルに、`id` をキーとするオブジェクトとして全データを記述します。
-
+*注意: `all.json` が存在する場合、同じディレクトリ内の他の `{id}.json` ファイルは無視されます。*
 ```
 json_data/
-└── users/                <-- テーブル名 'users'
+└── users/
     └── all.json
         {
           "1": { "name": "Alice" },
-          "2": { "name": "Bob" }
+          "2": { "id": 99, "name": "Bob" }  // "id": 99 が優先される
         }
 ```
-*注意: `all.json` が存在する場合、同じディレクトリ内の他の `{id}.json` ファイルは無視されます。*
 
 #### 2. 生成スクリプトの作成
 
@@ -113,8 +123,8 @@ class User(SQLModel, table=True):
 generate_db_from_directory(
     models=[User],
     db_path="generated_database.db",
-    input_dir="json_data", # 上で準備したディレクトリ
-    overwrite=True
+    input_dir="json_data",
+    overwrite=True  # Trueにすると、実行時に既存のDBファイルを削除
 )
 
 print("✅ データベースの生成が完了しました。")
