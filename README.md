@@ -13,7 +13,7 @@
 
 -   **CRUD APIの自動生成**: `AppBuilder` にモデルを追加するだけで、CRUD操作が可能なエンドポイントが利用可能になります。
 -   **柔軟な���キーマ設定**: 作成時と更新時で異なるバリデーションスキーマを適用できます。
--   **JSONからDB生成**: 特定のディレクトリ構造を持つJSONファイル群から、データベースを生成するユーティリティ関数を提供します。
+-   **JSONからDB生成**: 単一のJSONファイル（配列形式）から、自動採番でデータベースにレコードを生成します。
 -   **自動APIドキュメント**: `/docs` でSwagger UIが利用可能。
 
 詳細は以下のドキュメントを参照してください。
@@ -69,41 +69,21 @@ uvicorn main:app --reload
 
 ### JSONからのデータベース生成
 
-`generate_db_from_directory` 関数は、特定のディレクトリ構造からデータベースを生成します。
+`generate_db_from_json_file` 関数は、レコードの配列を含む単一のJSONファイルからデータベースを生成します。
+`id` はJSONファイルの内容に関わらず、データベースによって自動的に採番されます。
 
-#### 1. フォルダとファイルの準備
+#### 1. JSONファイルの準備
 
-`input_dir` として指定するディレクトリ（例: `json_data`）の直下に、**テーブル名と同じ名前のサブディレクトリ**を作成します。その中に、JSONファイルを用意します。
+インポートしたいデータの配列を含むJSONファイル（例: `users.json`）を準備します。
+JSONファイル内のオブジェクトに `id` が含まれていても、それは無視されます。
 
-**IDの決定**:
-レコードの `id` は、まずJSONファイル内の `id` フィールドが使われます。もし存在しない場合は、ファイル名（拡張子を除く）が `id` として扱われます。
-
-**形式A: 個別のJSONファイル**
-```
-json_data/
-└── users/                <-- テーブル名 'users'
-    ├── 1.json            <-- id: 1
-    |   { "name": "Alice" }
-    └── 2.json            <-- id: 2
-        { "name": "Bob" }
-└── posts/
-    ├── 101.json
-    |   { "title": "First Post", "user_id": 1 }
-    └── post_with_id.json <-- id: post_with_id (非推奨)
-        { "id": 102, "title": "Second Post", "user_id": 1 }
-```
-
-**形式B: `all.json` に全データをまとめる**
-`all.json` という名前のファイルに、`id` をキーとするオブジェクトとして全データを記述します。
-*注意: `all.json` が存在する場合、同じディレクトリ内の他の `{id}.json` ファイルは無視されます。*
-```
-json_data/
-└── users/
-    └── all.json
-        {
-          "1": { "name": "Alice" },
-          "2": { "id": 99, "name": "Bob" }  // "id": 99 が優先される
-        }
+```json
+// users.json
+[
+  { "name": "Alice", "age": 30 },
+  { "id": 99, "name": "Bob", "age": 25 },
+  { "name": "Charlie", "age": 35 }
+]
 ```
 
 #### 2. 生成スクリプトの作成
@@ -111,19 +91,19 @@ json_data/
 ```python
 # generate_db.py
 from sqlmodel import Field, SQLModel
-from json_api_builder import generate_db_from_directory
+from json_api_builder import generate_db_from_json_file
 
 # データベースに対応するモデルを定義
 class User(SQLModel, table=True):
-    __tablename__ = "users"
     id: int | None = Field(default=None, primary_key=True)
     name: str
+    age: int
 
 # 生成関数を呼び出す
-generate_db_from_directory(
-    models=[User],
+generate_db_from_json_file(
+    model=User,
     db_path="generated_database.db",
-    input_dir="json_data",
+    json_path="users.json",
     overwrite=True  # Trueにすると、実行時に既存のDBファイルを削除
 )
 

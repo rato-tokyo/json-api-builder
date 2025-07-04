@@ -19,17 +19,20 @@
 CIで実行される内容と完全に一致しています。これらのコマンドがすべて成功すれば、CIも成功します。
 
 ```shell
-# 1. ruffによるリントエラーのチェック
-ruff check .
+# 1. ruffによるリントエラーのチェック（問題がない場合は何も出力しない）
+ruff check . --quiet
 
-# 2. ruffによるフォーマットのチェック
-ruff format . --check
+# 2. ruffによるフォーマットのチェック（問題がない場合は何も出力しない）
+ruff format . --check --quiet
 
 # 3. vultureによる未使用コードの検出
 vulture . --min-confidence 80
 
-# 4. mypyによる型チェック
-mypy json_api_builder/
+# 4. mypyによる型チェック（エラーがない場合は何も出力しない）
+# PowerShellの場合
+mypy json_api_builder/ > $null
+# bash/zshの場合
+# mypy json_api_builder/ > /dev/null
 ```
 
 **mypyに関する注記:**
