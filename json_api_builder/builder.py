@@ -1,5 +1,5 @@
 # json_api_builder/builder.py
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -64,6 +64,24 @@ class AppBuilder:
                 tags=[table_name.capitalize()],
             )
         )
+
+    def add_custom_route(
+        self,
+        path: str,
+        endpoint: Callable[..., Any],
+        methods: list[str] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Adds a custom route to the FastAPI application.
+
+        Args:
+            path: The URL path for the route.
+            endpoint: The endpoint function to handle the request.
+            methods: A list of HTTP methods for the route, e.g., ["GET", "POST"].
+            **kwargs: Additional arguments to pass to FastAPI's `add_api_route`.
+        """
+        self.app.add_api_route(path, endpoint, methods=methods, **kwargs)
 
     def get_app(self) -> FastAPI:
         """Returns the configured FastAPI application instance."""

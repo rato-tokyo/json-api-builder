@@ -15,31 +15,34 @@ class Hero(SQLModel, table=True):
     age: int | None = None
 
 
-# --- 2. 非同期HTTPクライアントのフィクスチャ ---
-@pytest_asyncio.fixture(name="client")
-async def client_fixture() -> AsyncClient:
-    # 各テストごとに完全に独立したインメモリDBを使用
+# --- 2. AppBuilderのフィクスチャ ---
+@pytest_asyncio.fixture(name="builder")
+async def builder_fixture() -> AppBuilder:
     test_database_url = "sqlite+aiosqlite:///:memory:"
-
     builder = AppBuilder(db_path=test_database_url)
     builder.add_resource(Hero, path="/heroes")
-
-    app = builder.get_app()
 
     # テーブルを作成
     async with builder.engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
+    yield builder
 
     # テーブルを削除
     async with builder.engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
 
-# --- 3. テストケース ---
+# --- 3. 非同期HTTPクライアントのフィクスチャ ---
+@pytest_asyncio.fixture(name="client")
+async def client_fixture(builder: AppBuilder) -> AsyncClient:
+    app = builder.get_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
+# --- 4. テストケース ---
 @pytest.mark.asyncio
 async def test_full_crud_cycle(client: AsyncClient):
     # Create
@@ -77,3 +80,29 @@ async def test_full_crud_cycle(client: AsyncClient):
     # Verify Deletion
     response = await client.get(f"/heroes/{hero_id}")
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_add_custom_route(builder: AppBuilder):
+    # Add a custom route
+    async def custom_endpoint():
+        return {"message": "Hello from custom route"}
+
+    builder.add_custom_route(
+        "/custom", custom_endpoint, methods=["GET"], tags=["Custom"]
+    )
+
+    # Create a new client with the updated app
+    app = builder.get_app()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Test the custom route
+        response = await client.get("/custom")
+        assert response.status_code == 200
+        assert response.json() == {"message": "Hello from custom route"}
+
+        # Verify that the route appears in OpenAPI docs
+        openapi_schema = app.openapi()
+        assert "/custom" in openapi_schema["paths"]
+        assert "get" in openapi_schema["paths"]["/custom"]
+        assert "Custom" in openapi_schema["paths"]["/custom"]["get"]["tags"]
